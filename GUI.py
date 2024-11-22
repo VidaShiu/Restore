@@ -10,23 +10,22 @@ import datetime
 class MainApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("GFM50-Ventilator Automatic Test Process")
-        self.root.geometry("550x550")
+        self.root.title("GFM50-Ventilator Automatic Test Process")  # Set window title
+        self.root.geometry("550x550")  # Set window geometry
 
         self.output_dir = '.'  # Directory to save the file
         self.output_file = self.generate_filename()
 
-        # Default values for inputs
         self.dvsn_data = ""
         self.fwv_data = ""
         self.swv_data = ""
         self.wifiv_data = ""
         self.testcycle_data = ""
 
-        # Load test plans
+        # Load test plans from the Test_Plan_List.yml file
         self.test_plan_data = self.load_yaml('Test_Plan_List.yml', 'test_plans')
 
-        # Setup GUI
+        # Set up GUI
         self.setup_gui()
 
     def setup_gui(self):
@@ -76,6 +75,29 @@ class MainApp:
             print(f"File created: {self.output_file}")
         else:
             print(f"File already exists: {self.output_file}")
+
+    def write_data(self, dvsn_data, fwv_data, swv_data, wifiv_data, testcycle_data, test_plan_data):
+        """Write test data to the output file."""
+        try:
+            # Ensure the file exists or create it
+            self.ensure_file_exists()
+
+            # Append the data
+            with open(self.output_file, 'a') as file:
+                file.write(f"Device SN: {dvsn_data}\n")
+                file.write(f"FW Version: {fwv_data}\n")
+                file.write(f"SW Version: {swv_data}\n")
+                file.write(f"Wi-Fi Version: {wifiv_data}\n")
+                file.write("\n")
+                file.write("=====================\n")  # Separator between data sets
+                file.write(f"Part.I-Summary\n")
+                file.write(f"Test Type: {test_plan_data}\n")
+                file.write(f"Test cycle: {testcycle_data}\n")
+
+            print(f"Data written to {self.output_file}")
+
+        except Exception as e:
+            print(f"Error writing data: {e}")
 
     def validate_inputs(self):
         """Validate user inputs."""
