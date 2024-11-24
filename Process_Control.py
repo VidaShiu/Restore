@@ -3,26 +3,23 @@ import sys
 import time
 import yaml
 import logging
+import os
+import datetime
 from UART_Communicate import send_uart_command
 from Conditional import run_comparison
 import Serial_Port_Monitoring
-from Statistic import write_report, get_test_environment
+from Statistic import write_report, get_test_environment ###檢查是連動哪一些
+import global_config  # Ensures cooperation with GUI.py
 from threading import Thread
 
 # Set up logging
-logging.basicConfig(filename='Raw_Record.txt', level=logging.DEBUG, 
+logging.basicConfig(filename='Raw_Record.txt', level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Event for UART connection status
 connection_event = threading.Event()
 test_results = []  # Store results of each test item
 
-# Ensure test case file is provided as an argument or use default
-if len(sys.argv) < 2:
-    print("No test case file provided. Using default: 'Smoke_Test_Test_Case.yml'")
-    test_case_file = 'Smoke_Test_Test_Case.yml'
-else:
-    test_case_file = sys.argv[1]
 
 def load_yaml(file_name):
     """Load data from a YAML file."""
@@ -32,6 +29,7 @@ def load_yaml(file_name):
     except FileNotFoundError:
         logging.error(f"YAML file {file_name} not found.")
         sys.exit(f"YAML file {file_name} not found.")
+
 
 def run_test_case(test_case_file):
     """Run the test case from the provided YAML file."""
@@ -82,12 +80,22 @@ def run_test_case(test_case_file):
 
             time.sleep(1)
 
+
 def statistics():
     """Generate and write the test report."""
     test_environment = get_test_environment()
     write_report(test_environment, test_results)
 
+
 if __name__ == '__main__':
+    # Dynamically determine the test case file from global_config
+    test_case_file = global_config.selected_test_plan.replace(' ', '_') + "_Test_Case.yml"
+
+    # Validate test case file existence
+    if not os.path.exists(test_case_file):
+        print(f"Test case file {test_case_file} does not exist. Please check your selection.")
+        sys.exit(1)
+
     # Start serial port monitoring in a separate thread
     monitor_thread = threading.Thread(target=Serial_Port_Monitoring.monitor_serial_port, args=(connection_event,))
     monitor_thread.start()
@@ -112,3 +120,4 @@ if __name__ == '__main__':
     # Stop the serial port monitoring thread after the test case is executed
     Serial_Port_Monitoring.stop_event.set()
     monitor_thread.join()
+
