@@ -1,8 +1,16 @@
 import datetime
 import yaml
+import os
 
-def write_report(test_environment, test_results, report_file='Test_Report.txt'):
+def write_report(test_environment, test_results, report_directory='.'):
     """Generate a test report with the given test environment and results."""
+    
+    # Generate the report filename based on the current date
+    current_date = datetime.datetime.now().strftime("%Y_%m_%d")
+    report_file = os.path.join(report_directory, f"Test_Report_{current_date}.txt")
+
+    # Check if the report file exists
+    file_exists = os.path.exists(report_file)
 
     # Part A calculations
     total_tests = len(test_results)
@@ -35,13 +43,14 @@ def write_report(test_environment, test_results, report_file='Test_Report.txt'):
         else:
             part_b_failed_items.append(item)
 
-    # Write report
-    with open(report_file, 'w') as file:
-        # Test Environment
-        file.write("Test Environment:\n")
-        for key, value in test_environment.items():
-            file.write(f"  {key}: {value}\n")
-        file.write("\n")
+    # Write or append to the report
+    with open(report_file, 'a' if file_exists else 'w') as file:
+        # If the file is new, write the header
+        if not file_exists:
+            file.write("Test Environment:\n")
+            for key, value in test_environment.items():
+                file.write(f"  {key}: {value}\n")
+            file.write("\n")
 
         # Part A Summary
         file.write("Part A: Summary\n")
@@ -65,15 +74,6 @@ def write_report(test_environment, test_results, report_file='Test_Report.txt'):
             file.write(f"    Item Name: {item['item_name']}, Expected: {item['expected_value']}, "
                        f"Actual: {item['actual_value']}, Test Time: {item['test_time']}\n")
 
-    print(f"Report written to {report_file}")
+        file.write("=====================\n")  # Separator for additional test cycles or results
 
-def get_test_environment():
-    """Retrieve test environment details like device versions and timestamps."""
-    return {
-        "Device SN": "1212324500026",
-        "FW Version": "1.0.236",
-        "SW Version": "1.0.7",
-        "Wi-Fi Version": "1.0.19",
-        "Start Time": datetime.datetime.now(),
-        "Finish Time": datetime.datetime.now() + datetime.timedelta(minutes=5)
-    }
+    print(f"Report written to {report_file}")
