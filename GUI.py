@@ -53,6 +53,10 @@ class MainApp:
 
     def load_yaml(self, file_path, key):
         """Load the test plan list from a YAML file."""
+        if not os.path.exists(file_path):
+            print(f"Error: File {file_path} does not exist.")
+            return []
+
         try:
             with open(file_path, 'r') as file:
                 data = yaml.safe_load(file)
@@ -71,7 +75,6 @@ class MainApp:
         if not os.path.exists(self.output_file):
             with open(self.output_file, 'w') as file:
                 file.write("Test Report\n")
-                file.write("=====================\n")  # Header for the file
             print(f"File created: {self.output_file}")
         else:
             print(f"File already exists: {self.output_file}")
@@ -84,15 +87,16 @@ class MainApp:
 
             # Append the data
             with open(self.output_file, 'a') as file:
-                file.write(f"Device SN: {dvsn_data}\n")
-                file.write(f"FW Version: {fwv_data}\n")
-                file.write(f"SW Version: {swv_data}\n")
-                file.write(f"Wi-Fi Version: {wifiv_data}\n")
+                file.write("Test Environment:\n")
+                file.write(f"  Device SN: {dvsn_data}\n")
+                file.write(f"  FW Version: {fwv_data}\n")
+                file.write(f"  SW Version: {swv_data}\n")
+                file.write(f"  Wi-Fi Version: {wifiv_data}\n")
                 file.write("\n")
                 file.write("=====================\n")  # Separator between data sets
                 file.write(f"Part.I-Summary\n")
-                file.write(f"Test Type: {test_plan_data}\n")
-                file.write(f"Test cycle: {testcycle_data}\n")
+                file.write(f"  Test Type: {test_plan_data}\n")
+                file.write(f"  Test Cycle: {testcycle_data}\n")
 
             print(f"Data written to {self.output_file}")
 
@@ -105,27 +109,38 @@ class MainApp:
             messagebox.showerror("Validation Error", "Device SN must be exactly 13 characters long.")
             return False
 
-        if not self.test_plan_var.get() or self.test_plan_var.get() == "Choose a Test Plan":
-            messagebox.showerror("Validation Error", "Please select a valid Test Plan.")
-            return False
-
         return True
 
     def trigger_Process_Control(self):
-        """Validate inputs and trigger Process_Control.py."""
+        """Trigger the Process_Control script with the selected test plan."""
         if not self.validate_inputs():
             return
 
         selected_test_plan = self.test_plan_var.get()
-        global_config.selected_test_plan = selected_test_plan
-        yaml_file = f"{selected_test_plan.replace(' ', '_')}_Test_Case.yml"
+
+        if not selected_test_plan or selected_test_plan == "Choose a Test Plan":
+            messagebox.showerror("Validation Error", "Please select a valid Test Plan.")
+            return
+
+        # Pass the selected test plan to global_config
+        global_config.set_test_plan(selected_test_plan)
+        
+        self.write_data(
+            self.dvsn_var.get(),
+            self.fwv_var.get(),
+            self.swv_var.get(),
+            self.wifiv_var.get(),
+            self.testcycle_var.get(),
+            selected_test_plan
+        )
+
 
         try:
-            subprocess.run(["python", "Process_Control.py", yaml_file], check=True)
+            subprocess.run(["python", "Process_Control.py", selected_test_plan], check=True)
         except subprocess.CalledProcessError as e:
             messagebox.showerror("Execution Error", f"Error executing Process_Control.py: {e}")
         except FileNotFoundError:
-            messagebox.showerror("File Not Found", f"Test case file {yaml_file} not found.")
+            messagebox.showerror("File Not Found", f"Process_Control.py not found.")
 
 
 # Main function to run the GUI
