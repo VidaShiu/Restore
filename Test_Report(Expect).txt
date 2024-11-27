@@ -1,0 +1,41 @@
+
+Test Environment
+  Device SN: 1212324500026
+  FW Version: 1.0.236 
+  SW Version: 1.0.7
+  Wi-Fi Version: 1.0.19
+
+============================
+
+Part.I-Summary
+  Test Type: Smoke Test
+  Test Cycle: 10 #Consider about each single and testset, that value will be difference, phase 3 open this function
+
+  Start Time: 2024-11-15 15:32:30.226048
+  Finish Time: 2024-11-15 15:37:30.226067
+  Total Test Duration: 0:05:00.000019
+
+  Total Test Items: 2
+  Passed Items: 1
+  Failed Items: 1
+  Pass Probability: 50%
+
+============================
+
+Part.II-Detailed Results
+  Passed Items:
+    Item Name: Get SN Number
+    Actual: [sn_get+ok] 12123245000026 
+    Expected: [sn_get+ok] 1212324500026
+    Test Duration: 0:01:00.000005
+
+============================
+
+  Failed Items:
+    Item Name: Get SN Number
+    Actual: [sn_get+ok] 1212324500005 
+    Expected: [sn_get+ok] 1212324500026
+    Round: 2/10 ##還沒加入
+    Test Duration: 0:01:00.000005 
+    Error timestamp: YYYY-MM-DD, hh:mm:ss(current timestamp) ##還沒加入
+
