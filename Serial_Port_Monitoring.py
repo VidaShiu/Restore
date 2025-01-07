@@ -1,3 +1,5 @@
+# Checking and compiling the provided script for syntax and logic errors.
+
 import serial
 import threading
 import os
@@ -17,18 +19,21 @@ logging.basicConfig(
 serial_port = '/dev/ttyUSB0'
 baud_rate = 115200
 sends_command = "time_tick"
-connected_response_pattern = r"\[time_tick\+ok\]\s*"
+connected_response_pattern = r"\[time_tick\+ok\]\s*"  # RTC Response
+reboot_finished = "POST Check - Coin Bat."  # Status-Reboot finished
 
-retry_times = 5            # Maximum retries for connection
-reconnect_delay = 5        # Delay before retrying
-response_timeout = 10      # Response wait timeout
+retry_times = 5  # Maximum retries for connection
+reconnect_delay = 5  # Delay before retrying
+response_timeout = 10  # Response wait timeout
 
 stop_event = threading.Event()  # Event to signal stop
+
 
 def clear_terminal_buffer():
     """Clear terminal buffer to prevent residual data."""
     print("Clearing terminal buffer...")
     os.system('clear')  # Clear for Unix/Linux/macOS
+
 
 def establish_uart_connection(ser, connection_event):
     """Attempt to establish UART connection with retries."""
@@ -58,12 +63,14 @@ def establish_uart_connection(ser, connection_event):
         except serial.SerialException as e:
             logging.error(f"Serial communication error: {e}")
             time.sleep(reconnect_delay)
-    
+
     logging.error(f"Failed to establish UART connection after {retry_times} attempts.")
     return False
 
-def monitor_serial_port(connection_event):
-    """Monitor the serial port continuously, reconnecting if necessary."""
+
+def monitor_serial_port(connection_event, stop_event):
+    reboot_detected = False
+
     while not stop_event.is_set():
         ser = None
         try:
@@ -73,7 +80,7 @@ def monitor_serial_port(connection_event):
 
             if establish_uart_connection(ser, connection_event):
                 last_clear_time = time.time()
-                
+
                 while not stop_event.is_set():
                     if time.time() - last_clear_time >= 20:
                         clear_terminal_buffer()
@@ -83,7 +90,13 @@ def monitor_serial_port(connection_event):
                         message = ser.readline().decode('utf-8').strip()
                         print(f"Received: {message}")
                         logging.info(f"Received: {message}")
-                    
+
+                        if reboot_finished in message:
+                            print("Reboot complete detected.")
+                            logging.info("Reboot complete detected.")
+                            time.sleep(1)
+                            reboot_detected = True
+
                     # Check for disconnection or device idle state
                     if not connection_event.is_set():
                         logging.info("Detected disconnection or idle. Reconnecting...")
@@ -105,12 +118,16 @@ def monitor_serial_port(connection_event):
                 logging.info(f"Serial port {serial_port} closed.")
             time.sleep(reconnect_delay)
 
+
 if __name__ == '__main__':
     connection_event = threading.Event()
+    stop_event = threading.Event()
 
-    monitor_thread = threading.Thread(target=monitor_serial_port, args=(connection_event,))
+    monitor_thread = threading.Thread(target=monitor_serial_port, args=(connection_event, stop_event))
     monitor_thread.start()
 
-    # Wait for Process_Control.py to trigger stop_event to stop this process
+    # Simulate stop event (for testing, replace with actual process control logic)
+    time.sleep(30)  # Simulate running for 30 seconds before stopping
+    stop_event.set()
     monitor_thread.join()
     logging.info("Serial port monitoring stopped.")
