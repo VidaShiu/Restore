@@ -75,7 +75,12 @@ class TestRunner:
 
         time.sleep(1)
 
-    def run_test_task(self, step_name, command_number):
+    def run_test_task(self, step_name, command_number, stop_event):
+        if stop_event.is_set():
+           print("No response received. Stopping serial port monitoring for reinitialization.")
+           logging.warning("No response received. Stopping serial port monitoring for reinitialization.")
+           return
+        
         command_entry = self.command_library.get(command_number)
         if not command_entry:
             logging.warning(f"Command {command_number} not found in Command_Line.yml")
@@ -90,17 +95,12 @@ class TestRunner:
 
         response = self.uart.send_command(command)
         if not response:
-         print("No response received. Stopping serial port monitoring for reinitialization.")
-         logging.warning("No response received. Stopping serial port monitoring for reinitialization.")
-         self.stop_event.set()  # Signal to stop the monitoring thread
-
-         time.sleep(1)
-
-    # Reinitialize and restart serial port monitoring
          self.stop_event.clear()  # Clear the stop event to allow restart
+         self.stop_event.set()  # Signal to stop the monitoring thread
          monitor_thread = threading.Thread(target=monitor_serial_port, args=(self.connection_event, self.stop_event))
          monitor_thread.start()
          logging.info("Serial port monitoring restarted.")
+         time.sleep(1)
          return
 
         try:
@@ -165,25 +165,20 @@ class TestRunner:
 def main():
     connection_event = threading.Event()
     stop_event = threading.Event() # fix:0109
+    
     monitor_thread = threading.Thread(target=monitor_serial_port, args=(connection_event,stop_event)) # fix:0109
     monitor_thread.start()
 
-    print("Waiting for UART communication to be established...")
     connection_event.wait()
-    print("UART communication established. Starting the test process.")
 
     user_inputs = TestRunner.load_user_inputs("Selected_Test_Plan.yml")
-    if not user_inputs:
-        print("Error: Missing required user inputs or test plan.")
-        logging.error("Error: Missing required user inputs or test plan.")
-        return
 
     test_plan = user_inputs["selected_test_plan"]
     report_file = f"Test_Report_{datetime.datetime.now().strftime('%Y_%m_%d')}.txt"
     runner = TestRunner("Test_Case.yml", "Command_Line.yml", report_file)
 
     try:
-        runner.run_test_case(test_plan)
+        runner.run_test_case(test_plan, stop_event=stop_event)
     except Exception as e:
         logging.error(f"Error during test execution: {e}")
         print(f"Error: {e}")
@@ -191,7 +186,7 @@ def main():
         connection_event.clear()
         logging.info("Serial monitoring stopped.")
 
-
+    stop_event.set()
     monitor_thread.join()
     print(f"Test Completed: {test_plan}")
     logging.info(f"Test Completed: {test_plan}")
@@ -199,4 +194,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
